@@ -64,6 +64,7 @@ public class PromptService {
       Long currentUserId) {
     Page<Prompt> page = promptRepository.searchPrompts(category, aiModel, keyword, pageable);
 
+    @SuppressWarnings("null")
     List<Long> promptIds = page.getContent().stream().map(Prompt::getId).toList();
 
     Set<Long> likedIds = (currentUserId != null && !promptIds.isEmpty())
