@@ -27,8 +27,8 @@ public class User extends BaseTimeEntity {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
-  @Column(length = 100)
-  private String email; // 카카오는 비즈앱 전환 전까지 null 허용
+  @Column(nullable = false, length = 100)
+  private String email;
 
   @Column(nullable = false, length = 50)
   private String nickname;
