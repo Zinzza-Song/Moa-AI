@@ -122,7 +122,7 @@ public class PromptService {
   }
 
   @Transactional
-  public PromptToggleResponse toogleLike(Long promptId, Long userId) {
+  public PromptToggleResponse toggleLike(Long promptId, Long userId) {
     Prompt prompt = findPrompt(promptId);
 
     User user = findUser(userId);
