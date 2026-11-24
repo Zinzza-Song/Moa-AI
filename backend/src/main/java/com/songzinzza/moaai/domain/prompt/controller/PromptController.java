@@ -92,7 +92,7 @@ public class PromptController {
   public ApiResponse<PromptToggleResponse> toggleLike(
       @PathVariable Long promptId,
       @AuthenticationPrincipal Long userId) {
-    return ApiResponse.ok(promptService.toogleLike(promptId, userId));
+    return ApiResponse.ok(promptService.toggleLike(promptId, userId));
   }
 
   @Operation(summary = "프롬프트  북마크 토글", description = "이미 북마크 상태면 취소, 아니면 추가")
