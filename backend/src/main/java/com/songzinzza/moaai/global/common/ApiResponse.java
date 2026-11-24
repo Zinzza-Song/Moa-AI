@@ -15,7 +15,7 @@ public class ApiResponse<T> { // 프론트엔드 연동을 위한 표준 응답 
   private final T data;
 
   public static <T> ApiResponse<T> ok(T data) {
-    return new ApiResponse<>(true, "SUCESS", "요청이 성공적으로 처리되었습니다.", data);
+    return new ApiResponse<>(true, "SUCCESS", "요청이 성공적으로 처리되었습니다.", data);
   }
 
   public static ApiResponse<Void> ok() {
