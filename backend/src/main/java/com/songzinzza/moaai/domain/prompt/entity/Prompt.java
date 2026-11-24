@@ -1,6 +1,7 @@
 package com.songzinzza.moaai.domain.prompt.entity;
 
 import com.songzinzza.moaai.domain.user.entity.User;
+import com.songzinzza.moaai.global.common.BaseTimeEntity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -22,7 +23,7 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "prompts")
-public class Prompt {
+public class Prompt extends BaseTimeEntity {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
