@@ -41,6 +41,7 @@ public class SecurityConfig {
             .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**", "/error").permitAll()
             .requestMatchers("/oauth2/**", "/login/oauth2/**", "/api/auth/reissue").permitAll()
             .requestMatchers(HttpMethod.GET, "/api/prompts/**", "/api/news/**").permitAll()
+            .requestMatchers(HttpMethod.POST, "/api/prompts/*/copy").permitAll()
             .requestMatchers("/api/admin/**").hasRole("ADMIN")
             .anyRequest().authenticated())
         .oauth2Login(oauth2 -> oauth2
