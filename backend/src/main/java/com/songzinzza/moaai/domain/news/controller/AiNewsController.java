@@ -1,5 +1,6 @@
 package com.songzinzza.moaai.domain.news.controller;
 
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.songzinzza.moaai.domain.news.dto.AiNewsCreateRequest;
@@ -26,11 +27,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 @Tag(name = "AI News", description = "AI 트렌드 뉴스 API")
 @RestController
 @RequiredArgsConstructor
+@RequestMapping("/api")
 public class AiNewsController {
   private final AiNewsService aiNewsService;
 
   @Operation(summary = "AI 뉴스 목록 조회 및 검색", description = "키워드, 태그 필터링 및 최신 발행순 페이징 조회 지원")
-  @GetMapping("/api/news")
+  @GetMapping("/news")
   public ApiResponse<PageResponse<AiNewsResponse>> getList(
       @RequestParam(required = false) String keyword,
       @RequestParam(required = false) String tag,
@@ -42,19 +44,19 @@ public class AiNewsController {
   }
 
   @Operation(summary = "AI 뉴스 상세 조회")
-  @GetMapping("/api/news/{newsId}")
+  @GetMapping("/news/{newsId}")
   public ApiResponse<AiNewsResponse> getDetail(@PathVariable Long newsId) {
     return ApiResponse.ok(aiNewsService.getDetail(newsId));
   }
 
   @Operation(summary = "[관리자] AI 뉴스 등록", description = "Admin 권한 계정만 등록 가능")
-  @PostMapping("/api/admin/news")
+  @PostMapping("/admin/news")
   public ApiResponse<AiNewsResponse> create(@Valid @RequestBody AiNewsCreateRequest req) {
     return ApiResponse.ok(aiNewsService.create(req));
   }
 
   @Operation(summary = "[관리자] AI 뉴스 삭제", description = "Admin 권한 계정만 삭제 가능")
-  @DeleteMapping("/api/admin/news/{newsId}")
+  @DeleteMapping("/admin/news/{newsId}")
   public ApiResponse<Void> delete(@PathVariable Long newsId) {
     aiNewsService.delete(newsId);
 
