@@ -20,8 +20,8 @@ spring:
     show-sql: true
     properties:
       hibernate:
-        format_sql: true
-        default_batch_fetch_size: 100
+        "[format_sql]": true
+        "[default_batch_fetch_size]": 100
   
   data:
     redis:
@@ -77,14 +77,14 @@ spring:
   ai:
     model:
       chat: google-genai
-
+    retry:
+      max-attempts: 1
     google:
       genai:
         api-key: ${GEMINI_API_KEY}
         chat:
-          options:
-            model: ${GEMINI_MODEL:gemini-3.8-flash}
-            temperature: 0.7
+          model: ${GEMINI_MODEL:gemini-3.5-flash-lite}
+          temperature: 0.7
 
 
 jwt:
