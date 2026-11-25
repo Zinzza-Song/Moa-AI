@@ -22,6 +22,7 @@ public enum ErrorCode { // 에러 코드들
   PROMPT_NOT_FOUND(HttpStatus.NOT_FOUND, "P001", "프롬프트를 찾을 수 없습니다."),
   NOT_PROMPT_OWNER(HttpStatus.FORBIDDEN, "P002", "해당 프롬프트에 대한 수정 / 삭제 권한이 없습니다."),
   AI_RATE_LIMIT_EXCEEDED(HttpStatus.TOO_MANY_REQUESTS, "P003", "일일 AI 프롬프트 개선 호출 한도를 초과했습니다."),
+  AI_API_ERROR(HttpStatus.BAD_GATEWAY, "P004", "AI 응답 처리 중 오류가 발생했습니다."),
 
   // News
   NEWS_NOT_FOUND(HttpStatus.NOT_FOUND, "N001", "AI 트렌드 뉴스를 찾을 수 없습니다."),
