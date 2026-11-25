@@ -24,7 +24,8 @@ public enum ErrorCode { // 에러 코드들
   AI_RATE_LIMIT_EXCEEDED(HttpStatus.TOO_MANY_REQUESTS, "P003", "일일 AI 프롬프트 개선 호출 한도를 초과했습니다."),
 
   // News
-  NEWS_NOT_FOUND(HttpStatus.NOT_FOUND, "N001", "AI 트렌드 뉴스를 찾을 수 없습니다.");
+  NEWS_NOT_FOUND(HttpStatus.NOT_FOUND, "N001", "AI 트렌드 뉴스를 찾을 수 없습니다."),
+  DUPLICATE_NEWS_URL(HttpStatus.CONFLICT, "N002", "이미 등록된 뉴스 URL입니다.");
 
   private final HttpStatus status;
   private final String code;
