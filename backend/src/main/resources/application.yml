@@ -75,6 +75,9 @@ spring:
             user-name-attribute: response
     
   ai:
+    model:
+      chat: google-genai
+
     google:
       genai:
         api-key: ${GEMINI_API_KEY}
