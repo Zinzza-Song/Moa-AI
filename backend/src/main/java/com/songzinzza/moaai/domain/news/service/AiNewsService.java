@@ -2,6 +2,9 @@ package com.songzinzza.moaai.domain.news.service;
 
 import java.time.LocalDateTime;
 
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -12,6 +15,7 @@ import com.songzinzza.moaai.domain.news.dto.AiNewsResponse;
 import com.songzinzza.moaai.domain.news.entity.AiNews;
 import com.songzinzza.moaai.domain.news.repository.AiNewsRepository;
 import com.songzinzza.moaai.global.common.PageResponse;
+import com.songzinzza.moaai.global.config.RedisCacheConfig;
 import com.songzinzza.moaai.global.exception.BusinessException;
 import com.songzinzza.moaai.global.exception.ErrorCode;
 
@@ -23,12 +27,14 @@ import lombok.RequiredArgsConstructor;
 public class AiNewsService {
   private final AiNewsRepository aiNewsRepository;
 
+  @Cacheable(value = RedisCacheConfig.NEWS_LIST, key = "(#tag != null && !#tag.isBlank() ? #tag : 'all') + ':' + #pageable.pageNumber + ':' + #pageable.pageSize + ':' + #pageable.sort.toString()", condition = "#keyword == null || #keyword.isBlank()")
   public PageResponse<AiNewsResponse> getList(String keyword, String tag, Pageable pageable) {
     Page<AiNewsResponse> page = aiNewsRepository.searchNews(keyword, tag, pageable)
         .map(AiNewsResponse::from);
     return PageResponse.from(page);
   }
 
+  @Cacheable(value = RedisCacheConfig.NEWS_DETAIL, key = "#newId")
   public AiNewsResponse getDetail(Long newId) {
     AiNews news = aiNewsRepository.findById(newId)
         .orElseThrow(() -> new BusinessException(ErrorCode.NEWS_NOT_FOUND));
@@ -37,6 +43,7 @@ public class AiNewsService {
   }
 
   @Transactional
+  @CacheEvict(value = RedisCacheConfig.NEWS_LIST, allEntries = true)
   public AiNewsResponse create(AiNewsCreateRequest req) {
     if (aiNewsRepository.existsByOriginalUrl(req.originalUrl()))
       throw new BusinessException(ErrorCode.DUPLICATE_NEWS_URL);
@@ -54,6 +61,10 @@ public class AiNewsService {
   }
 
   @Transactional
+  @Caching(evict = {
+      @CacheEvict(value = RedisCacheConfig.NEWS_LIST, allEntries = true),
+      @CacheEvict(value = RedisCacheConfig.NEWS_DETAIL, key = "#newId")
+  })
   public void delete(Long newId) {
     AiNews news = aiNewsRepository.findById(newId)
         .orElseThrow(() -> new BusinessException(ErrorCode.NEWS_NOT_FOUND));

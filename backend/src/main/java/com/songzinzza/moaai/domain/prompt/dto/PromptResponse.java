@@ -19,7 +19,7 @@ public record PromptResponse(
     long bookmarkCount,
     long copyCount,
     boolean liked,
-    boolean bookpmarked,
+    boolean bookmarked,
     LocalDateTime createdAt,
     LocalDateTime updatedAt) {
   public static PromptResponse of(Prompt prompt, boolean liked, boolean bookmarked) {
@@ -39,5 +39,24 @@ public record PromptResponse(
         bookmarked,
         prompt.getCreatedAt(),
         prompt.getUpdatedAt());
+  }
+
+  public PromptResponse withUserStatus(boolean liked, boolean bookmarked) {
+    return new PromptResponse(
+        this.id,
+        this.authorId,
+        this.authorNickname,
+        this.title,
+        this.content,
+        this.resultExample,
+        this.category,
+        this.aiModel,
+        this.likeCount,
+        this.bookmarkCount,
+        this.copyCount,
+        liked,
+        bookmarked,
+        this.createdAt,
+        this.updatedAt);
   }
 }
