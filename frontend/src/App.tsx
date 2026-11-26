@@ -9,6 +9,7 @@ import { NewsPage } from './pages/NewsPage';
 import { OAuth2CallbackPage } from './pages/OAuth2CallbackPage';
 import { PromptCreatePage } from './pages/PromptCreatePage';
 import { PromptDetailPage } from './pages/PromptDetailPage';
+import { PromptEditPage } from './pages/PromptEditPage';
 
 export function App() {
   return (
@@ -24,6 +25,7 @@ export function App() {
 
             <Route element={<ProtectedRoute />}>
               <Route path="/prompts/new" element={<PromptCreatePage />} />
+              <Route path="/prompts/:id/edit" element={<PromptEditPage />} />
               <Route path="/ai/refine" element={<AiRefinePage />} />
             </Route>
           </Route>
