@@ -9,6 +9,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
@@ -21,6 +22,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "ai_news", uniqueConstraints = {
     @UniqueConstraint(name = "uk_ai_news_origianl_url", columnNames = { "original_url" })
+}, indexes = {
+    @Index(name = "idx_ai_news_published_at", columnList = "published_at")
 })
 public class AiNews extends BaseTimeEntity {
   @Id

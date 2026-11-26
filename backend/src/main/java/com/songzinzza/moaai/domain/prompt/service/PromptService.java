@@ -1,10 +1,10 @@
 package com.songzinzza.moaai.domain.prompt.service;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
-import org.springframework.data.domain.Page;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +24,7 @@ import com.songzinzza.moaai.domain.prompt.repository.PromptRepository;
 import com.songzinzza.moaai.domain.user.entity.User;
 import com.songzinzza.moaai.domain.user.repository.UserRepository;
 import com.songzinzza.moaai.global.common.PageResponse;
+import com.songzinzza.moaai.global.config.RedisCacheConfig;
 import com.songzinzza.moaai.global.exception.BusinessException;
 import com.songzinzza.moaai.global.exception.ErrorCode;
 
@@ -37,8 +38,10 @@ public class PromptService {
   private final PromptLikeRepository promptLikeRepository;
   private final PromptBookmarkRepository promptBookmarkRepository;
   private final UserRepository userRepository;
+  private final PromptCacheService promptCacheService;
 
   @Transactional
+  @CacheEvict(value = RedisCacheConfig.PROMPT_LIST, allEntries = true)
   public PromptResponse create(Long userId, PromptCreateRequest req) {
     User user = findUser(userId);
 
@@ -62,36 +65,35 @@ public class PromptService {
       String keyword,
       Pageable pageable,
       Long currentUserId) {
-    Page<Prompt> page = promptRepository.searchPrompts(category, aiModel, keyword, pageable);
+    PageResponse<PromptResponse> cached = promptCacheService.getPublicList(category, aiModel, keyword, pageable);
 
-    @SuppressWarnings("null")
-    List<Long> promptIds = page.getContent().stream().map(Prompt::getId).toList();
+    if (currentUserId == null || cached.content().isEmpty())
+      return cached;
 
-    Set<Long> likedIds = (currentUserId != null && !promptIds.isEmpty())
-        ? promptLikeRepository.findLikedPromptIds(currentUserId, promptIds)
-        : Collections.emptySet();
+    List<Long> promptIds = cached.content().stream().map(PromptResponse::id).toList();
+    Set<Long> likedIds = promptLikeRepository.findLikedPromptIds(currentUserId, promptIds);
+    Set<Long> bookmarkedIds = promptBookmarkRepository.findBookmarkedPromptIds(currentUserId, promptIds);
 
-    Set<Long> bookmarkedIds = (currentUserId != null && !promptIds.isEmpty())
-        ? promptBookmarkRepository.findBookmarkedPromptIds(currentUserId, promptIds)
-        : Collections.emptySet();
-
-    Page<PromptResponse> mapped = page
-        .map(p -> PromptResponse.of(p, likedIds.contains(p.getId()), bookmarkedIds.contains(p.getId())));
-
-    return PageResponse.from(mapped);
+    return cached.map(p -> p.withUserStatus(likedIds.contains(p.id()), bookmarkedIds.contains(p.id())));
   }
 
   public PromptResponse getDetail(Long promptId, Long currentUserId) {
-    Prompt prompt = findPromptWithUser(promptId);
+    PromptResponse cached = promptCacheService.getPublicDetail(promptId);
 
-    boolean liked = currentUserId != null && promptLikeRepository.existsByUserIdAndPromptId(currentUserId, promptId);
-    boolean bookmarked = currentUserId != null
-        && promptBookmarkRepository.existsByUserIdAndPromptId(currentUserId, promptId);
+    if (currentUserId == null)
+      return cached;
 
-    return PromptResponse.of(prompt, liked, bookmarked);
+    boolean liked = promptLikeRepository.existsByUserIdAndPromptId(currentUserId, promptId);
+    boolean bookmarked = promptBookmarkRepository.existsByUserIdAndPromptId(currentUserId, promptId);
+
+    return cached.withUserStatus(liked, bookmarked);
   }
 
   @Transactional
+  @Caching(evict = {
+      @CacheEvict(value = RedisCacheConfig.PROMPT_LIST, allEntries = true),
+      @CacheEvict(value = RedisCacheConfig.PROMPT_DETAIL, key = "#promptId")
+  })
   public PromptResponse update(Long promptId, Long userId, PromptUpdateRequest req) {
     Prompt prompt = findPromptWithUser(promptId);
 
@@ -111,6 +113,10 @@ public class PromptService {
   }
 
   @Transactional
+  @Caching(evict = {
+      @CacheEvict(value = RedisCacheConfig.PROMPT_LIST, allEntries = true),
+      @CacheEvict(value = RedisCacheConfig.PROMPT_DETAIL, key = "#promptId")
+  })
   public void delete(Long promptId, Long userId) {
     Prompt prompt = findPromptWithUser(promptId);
 
@@ -122,6 +128,10 @@ public class PromptService {
   }
 
   @Transactional
+  @Caching(evict = {
+      @CacheEvict(value = RedisCacheConfig.PROMPT_LIST, allEntries = true),
+      @CacheEvict(value = RedisCacheConfig.PROMPT_DETAIL, key = "#promptId")
+  })
   public PromptToggleResponse toggleLike(Long promptId, Long userId) {
     Prompt prompt = findPrompt(promptId);
 
@@ -143,6 +153,10 @@ public class PromptService {
   }
 
   @Transactional
+  @Caching(evict = {
+      @CacheEvict(value = RedisCacheConfig.PROMPT_LIST, allEntries = true),
+      @CacheEvict(value = RedisCacheConfig.PROMPT_DETAIL, key = "#promptId")
+  })
   public PromptToggleResponse toggleBookmark(Long promptId, Long userId) {
     Prompt prompt = findPrompt(promptId);
 
@@ -164,6 +178,10 @@ public class PromptService {
   }
 
   @Transactional
+  @Caching(evict = {
+      @CacheEvict(value = RedisCacheConfig.PROMPT_LIST, allEntries = true),
+      @CacheEvict(value = RedisCacheConfig.PROMPT_DETAIL, key = "#promptId")
+  })
   public long increaseCopyCount(Long promptId) {
     Prompt prompt = findPrompt(promptId);
     prompt.increaseCopy();

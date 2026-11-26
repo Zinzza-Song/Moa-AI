@@ -11,6 +11,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
@@ -22,7 +23,11 @@ import lombok.NoArgsConstructor;
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(name = "prompts")
+@Table(name = "prompts", indexes = {
+    @Index(name = "idx_prompts_category_model_created", columnList = "category, ai_model, created_at"),
+    @Index(name = "idx_prompts_created_at", columnList = "created_at"),
+    @Index(name = "idx_prompts_like_count", columnList = "like_count")
+})
 public class Prompt extends BaseTimeEntity {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)

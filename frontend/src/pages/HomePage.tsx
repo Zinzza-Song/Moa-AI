@@ -358,7 +358,7 @@ export function HomePage() {
                   <span className="inline-flex items-center gap-1">
                     <Bookmark
                       className={`h-3.5 w-3.5 ${
-                        prompt.bookpmarked
+                        prompt.bookmarked
                           ? 'fill-amber-500 text-amber-500'
                           : 'text-slate-400'
                       }`}

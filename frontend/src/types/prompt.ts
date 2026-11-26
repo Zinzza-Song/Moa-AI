@@ -55,8 +55,8 @@ export interface PromptResponse {
   bookmarkCount: number;
   copyCount: number;
   liked: boolean;
-  /** Matches backend PromptResponse record field name (`bookpmarked`). */
-  bookpmarked: boolean;
+  /** Matches backend PromptResponse record field name (`bookmarked`). */
+  bookmarked: boolean;
   createdAt: string;
   updatedAt: string;
 }

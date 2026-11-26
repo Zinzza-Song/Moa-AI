@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.regex.Pattern;
 
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
@@ -12,6 +14,7 @@ import com.songzinzza.moaai.domain.news.dto.AiNewsCollectResponse;
 import com.songzinzza.moaai.domain.news.entity.AiNews;
 import com.songzinzza.moaai.domain.news.repository.AiNewsRepository;
 import com.songzinzza.moaai.domain.news.service.RssFeedParser.RssFeedItem;
+import com.songzinzza.moaai.global.config.RedisCacheConfig;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -32,16 +35,19 @@ public class AiNewsCollectService {
   private final RssFeedParser rssFeedParser;
   private final AiNewsRepository aiNewsRepository;
   private final ChatClient chatClient;
+  private final CacheManager cacheManager;
 
   public AiNewsCollectService(
       NewsCollectProperties properties,
       RssFeedParser rssFeedParser,
       AiNewsRepository aiNewsRepository,
-      ChatClient.Builder chatClientBuilder) {
+      ChatClient.Builder chatClientBuilder,
+      CacheManager cacheManager) {
     this.properties = properties;
     this.rssFeedParser = rssFeedParser;
     this.aiNewsRepository = aiNewsRepository;
     this.chatClient = chatClientBuilder.build();
+    this.cacheManager = cacheManager;
   }
 
   public AiNewsCollectResponse collectAll() {
@@ -116,6 +122,12 @@ public class AiNewsCollectService {
 
     log.info("AI 뉴스 수집 완료 - fetched={}, saved={}, skipped={}, failed={}",
         totalFetched, savedCount, skippedCount, failedCount);
+
+    if (savedCount > 0) {
+      Cache newsListCache = cacheManager.getCache(RedisCacheConfig.NEWS_LIST);
+      if (newsListCache != null)
+        newsListCache.clear();
+    }
 
     return new AiNewsCollectResponse(totalFetched, savedCount, skippedCount, failedCount);
   }
