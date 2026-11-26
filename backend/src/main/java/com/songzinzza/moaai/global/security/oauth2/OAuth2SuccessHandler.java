@@ -16,7 +16,6 @@ import com.songzinzza.moaai.global.security.jwt.JwtProvider;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import tools.jackson.databind.ObjectMapper;
 
 @Component
 @RequiredArgsConstructor
