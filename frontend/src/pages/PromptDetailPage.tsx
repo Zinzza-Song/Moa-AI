@@ -127,7 +127,7 @@ export function PromptDetailPage() {
       const result = await togglePromptBookmark(prompt.id);
       setPrompt((prev) =>
         prev
-          ? { ...prev, bookpmarked: result.active, bookmarkCount: result.count }
+          ? { ...prev, bookmarked: result.active, bookmarkCount: result.count }
           : prev,
       );
     } catch (error) {
@@ -314,14 +314,14 @@ export function PromptDetailPage() {
             disabled={isTogglingBookmark}
             onClick={() => void handleToggleBookmark()}
             className={`inline-flex cursor-pointer items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors disabled:opacity-60 ${
-              prompt.bookpmarked
+              prompt.bookmarked
                 ? 'border-amber-200 bg-amber-50 text-amber-700'
                 : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
             }`}
           >
             <Bookmark
               className={`h-4 w-4 ${
-                prompt.bookpmarked ? 'fill-amber-500 text-amber-500' : ''
+                prompt.bookmarked ? 'fill-amber-500 text-amber-500' : ''
               }`}
             />
             <span>북마크</span>
