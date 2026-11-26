@@ -3,8 +3,10 @@ package com.songzinzza.moaai.domain.news.controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.songzinzza.moaai.domain.news.dto.AiNewsCollectResponse;
 import com.songzinzza.moaai.domain.news.dto.AiNewsCreateRequest;
 import com.songzinzza.moaai.domain.news.dto.AiNewsResponse;
+import com.songzinzza.moaai.domain.news.service.AiNewsCollectService;
 import com.songzinzza.moaai.domain.news.service.AiNewsService;
 import com.songzinzza.moaai.global.common.ApiResponse;
 import com.songzinzza.moaai.global.common.PageResponse;
@@ -17,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -30,6 +33,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 @RequestMapping("/api")
 public class AiNewsController {
   private final AiNewsService aiNewsService;
+  private final AiNewsCollectService aiNewsCollectService;
 
   @Operation(summary = "AI 뉴스 목록 조회 및 검색", description = "키워드, 태그 필터링 및 최신 발행순 페이징 조회 지원")
   @GetMapping("/news")
@@ -61,5 +65,11 @@ public class AiNewsController {
     aiNewsService.delete(newsId);
 
     return ApiResponse.ok();
+  }
+
+  @Operation(summary = "[관리자] AI 트렌드 뉴스 자동 수집 및 Gemini 요약 실행")
+  @PostMapping("/admin/news/collect")
+  public ResponseEntity<ApiResponse<AiNewsCollectResponse>> collectAiNews() {
+    return ResponseEntity.ok(ApiResponse.ok(aiNewsCollectService.collectAll()));
   }
 }

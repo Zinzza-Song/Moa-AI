@@ -1,6 +1,7 @@
 import apiClient from './client';
 import type { ApiResponse, PageResponse } from '../types/api';
 import type {
+  AiNewsCollectResponse,
   AiNewsCreateRequest,
   AiNewsListParams,
   AiNewsResponse,
@@ -41,4 +42,13 @@ export async function createAdminNews(
 
 export async function deleteAdminNews(newsId: number): Promise<void> {
   await apiClient.delete<ApiResponse<void>>(`/admin/news/${newsId}`);
+}
+
+export async function collectAiNews(): Promise<AiNewsCollectResponse> {
+  const { data } = await apiClient.post<ApiResponse<AiNewsCollectResponse>>(
+    '/admin/news/collect',
+    undefined,
+    { timeout: 60_000 },
+  );
+  return data.data;
 }

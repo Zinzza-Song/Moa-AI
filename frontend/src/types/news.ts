@@ -24,3 +24,10 @@ export interface AiNewsResponse {
   publishedAt: string;
   createdAt: string;
 }
+
+export interface AiNewsCollectResponse {
+  totalFetched: number;
+  savedCount: number;
+  skippedCount: number;
+  failedCount: number;
+}

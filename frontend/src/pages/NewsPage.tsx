@@ -1,16 +1,20 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
+  AlertCircle,
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   ExternalLink,
+  Loader2,
   Newspaper,
   PlusCircle,
   Search,
+  Sparkles,
   Tag,
   X,
 } from 'lucide-react';
-import { getNewsList } from '../api/news';
+import { collectAiNews, getNewsList } from '../api/news';
 import { extractApiError, formatDateTime } from '../constants/promptOptions';
 import { useAuth } from '../context/AuthContext';
 import type { PageResponse } from '../types/api';
@@ -32,6 +36,11 @@ export function NewsPage() {
   const [keyword, setKeyword] = useState<string>(initialKeyword);
   const [selectedTag, setSelectedTag] = useState<string>(initialTag);
   const [page, setPage] = useState<number>(0);
+  const [isCollecting, setIsCollecting] = useState<boolean>(false);
+  const [collectNotice, setCollectNotice] = useState<{
+    type: 'success' | 'error';
+    message: string;
+  } | null>(null);
 
   const isAdmin = isAuthenticated && user?.role === 'ADMIN';
 
@@ -91,6 +100,37 @@ export function NewsPage() {
     syncQueryParams('', '');
   };
 
+  const handleCollectNews = async () => {
+    if (isCollecting) return;
+    setIsCollecting(true);
+    setCollectNotice(null);
+    try {
+      const result = await collectAiNews();
+      const failedSuffix =
+        result.failedCount > 0 ? `, 실패 ${result.failedCount}건` : '';
+      setCollectNotice({
+        type: 'success',
+        message: `수집 완료: 신규 ${result.savedCount}건 저장, 중복 ${result.skippedCount}건 건너뜀${failedSuffix} (총 ${result.totalFetched}건 조회)`,
+      });
+      if (page !== 0) {
+        setPage(0);
+      } else {
+        await fetchNews();
+      }
+    } catch (error) {
+      const { message } = extractApiError(
+        error,
+        'AI 뉴스 자동 수집에 실패했습니다.',
+      );
+      setCollectNotice({
+        type: 'error',
+        message,
+      });
+    } finally {
+      setIsCollecting(false);
+    }
+  };
+
   const hasActiveFilters = Boolean(keyword || selectedTag);
   const newsList = newsPage?.content ?? [];
   const totalPages = newsPage?.totalPages ?? 0;
@@ -113,15 +153,64 @@ export function NewsPage() {
         </div>
 
         {isAdmin && (
-          <Link
-            to="/news/new"
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-indigo-700"
-          >
-            <PlusCircle className="h-4 w-4" />
-            <span>뉴스 등록</span>
-          </Link>
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => void handleCollectNews()}
+              disabled={isCollecting}
+              className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2.5 text-sm font-semibold text-indigo-700 transition-colors hover:bg-indigo-100 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isCollecting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>수집 및 요약 중...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4" />
+                  <span>AI 뉴스 자동 수집</span>
+                </>
+              )}
+            </button>
+            <Link
+              to="/news/new"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-indigo-700"
+            >
+              <PlusCircle className="h-4 w-4" />
+              <span>뉴스 등록</span>
+            </Link>
+          </div>
         )}
       </section>
+
+      {/* AI 뉴스 자동 수집 결과 알림 */}
+      {collectNotice && (
+        <div
+          role="status"
+          className={`flex items-start justify-between gap-3 rounded-2xl border px-4 py-3 text-sm ${
+            collectNotice.type === 'success'
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+              : 'border-red-200 bg-red-50 text-red-700'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            {collectNotice.type === 'success' ? (
+              <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+            ) : (
+              <AlertCircle className="h-4 w-4 shrink-0 text-red-600" />
+            )}
+            <span className="font-medium">{collectNotice.message}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setCollectNotice(null)}
+            aria-label="알림 닫기"
+            className="cursor-pointer rounded-lg p-1 opacity-70 transition-opacity hover:opacity-100"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
 
       {/* 검색 & 활성 태그 필터 */}
       <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-xs sm:p-5">
