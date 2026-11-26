@@ -102,3 +102,6 @@ springdoc:
 ai:
   rate-limit:
     daily-limit: 10
+
+app:
+  frontend-url: ${FRONTEND_URL://localhost:5173}
