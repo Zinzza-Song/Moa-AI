@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.Optional;
 
 public interface PromptRepository extends JpaRepository<Prompt, Long> {
-
   @EntityGraph(attributePaths = { "user" })
   @Query("""
       SELECT p FROM Prompt p
@@ -64,7 +63,7 @@ public interface PromptRepository extends JpaRepository<Prompt, Long> {
   @Query("UPDATE Prompt p SET p.bookmarkCount = CASE WHEN p.bookmarkCount > 0 THEN p.bookmarkCount - 1 ELSE 0 END WHERE p.id = :id")
   int decrementBookmarkCount(@Param("id") Long id);
 
-  // 갱신 직후 최신 카운트 단건 조히
+  // 갱신 직후 최신 카운트 단건 조회
   @Query("SELECT p.copyCount FROM Prompt p WHERE p.id = :id")
   Optional<Long> findCopyCountById(@Param("id") Long id);
 
@@ -84,4 +83,10 @@ public interface PromptRepository extends JpaRepository<Prompt, Long> {
       ORDER BY (p.likeCount * 3 + p.bookmarkCount * 2 + p.copyCount * 2) DESC, p.createdAt DESC
       """)
   List<Prompt> findTopPopular(Pageable pageable);
+
+  // 마이페이지 조회용
+  @EntityGraph(attributePaths = { "user" })
+  Page<Prompt> findByUserIdOrderByCreatedAtDesc(Long userId, Pageable pageable);
+
+  long countByUserId(Long userId);
 }

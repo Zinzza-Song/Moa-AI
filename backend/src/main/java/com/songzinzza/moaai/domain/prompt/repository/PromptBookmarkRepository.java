@@ -4,11 +4,14 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import com.songzinzza.moaai.domain.prompt.entity.Prompt;
 import com.songzinzza.moaai.domain.prompt.entity.PromptBookmark;
 
 public interface PromptBookmarkRepository extends JpaRepository<PromptBookmark, Long> {
@@ -24,4 +27,9 @@ public interface PromptBookmarkRepository extends JpaRepository<PromptBookmark, 
   @Modifying
   @Query("DELETE FROM PromptBookmark pb WHERE pb.user.id = :userId AND pb.prompt.id = :promptId")
   int deleteByUserIdAndPromptId(@Param("userId") Long userId, @Param("promptId") Long promptId);
+
+  @Query(value = "SELECT p FROM PromptBookmark pb JOIN pb.prompt p JOIN FETCH p.user WHERE pb.user.id = :userId ORDER BY pb.createdAt DESC", countQuery = "SELECT COUNT(pb) FROM PromptBookmark pb WHERE pb.user.id = :userId")
+  Page<Prompt> findBookmarkedPromptsByUserId(@Param("userId") Long userId, Pageable pageable);
+
+  long countByUserId(Long userId);
 }
