@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  Bookmark,
   ChevronLeft,
   ChevronRight,
   Copy,
@@ -11,7 +10,8 @@ import {
   Sparkles,
   Wand2,
 } from 'lucide-react';
-import { getPrompts } from '../api/prompt';
+import { getPopularPrompts, getPrompts } from '../api/prompt';
+import { PromptCard } from '../components/prompt/PromptCard';
 import {
   AI_MODELS,
   AI_MODEL_LABEL_MAP,
@@ -19,7 +19,6 @@ import {
   PROMPT_CATEGORIES,
   PROMPT_SORT_OPTIONS,
   extractApiError,
-  formatDateTime,
 } from '../constants/promptOptions';
 import type { PageResponse } from '../types/api';
 import type {
@@ -30,6 +29,7 @@ import type {
 } from '../types/prompt';
 
 export function HomePage() {
+  const [popularPrompts, setPopularPrompts] = useState<PromptResponse[]>([]);
   const [promptsPage, setPromptsPage] =
     useState<PageResponse<PromptResponse> | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -69,6 +69,24 @@ export function HomePage() {
   useEffect(() => {
     void fetchPrompts();
   }, [fetchPrompts]);
+
+  useEffect(() => {
+    let mounted = true;
+    async function fetchPopular() {
+      try {
+        const data = await getPopularPrompts(5);
+        if (mounted) {
+          setPopularPrompts(data);
+        }
+      } catch {
+        // 인기 프롬프트 로드 실패 시 섹션을 숨김 처리
+      }
+    }
+    void fetchPopular();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const handleSearchSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -124,6 +142,81 @@ export function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* 실시간 인기 프롬프트 TOP 5 */}
+      {popularPrompts.length > 0 && (
+        <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-xs sm:p-5">
+          <div className="flex items-center justify-between">
+            <h2 className="flex items-center gap-1.5 text-base font-bold text-slate-900">
+              <span aria-hidden="true">🔥</span>
+              <span>실시간 인기 프롬프트 TOP 5</span>
+            </h2>
+            <span className="text-xs text-slate-400">인기순</span>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            {popularPrompts.map((prompt, index) => {
+              const rank = index + 1;
+              const badgeClass =
+                rank === 1
+                  ? 'bg-amber-500 text-white'
+                  : rank === 2
+                    ? 'bg-indigo-600 text-white'
+                    : rank === 3
+                      ? 'bg-orange-500 text-white'
+                      : 'bg-slate-200 text-slate-700';
+
+              return (
+                <Link
+                  key={prompt.id}
+                  to={`/prompts/${prompt.id}`}
+                  className="group flex flex-col justify-between rounded-xl border border-slate-200 bg-slate-50/50 p-3.5 transition-all hover:-translate-y-0.5 hover:border-indigo-200 hover:bg-white hover:shadow-sm"
+                >
+                  <div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span
+                        className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-xs font-bold ${badgeClass}`}
+                      >
+                        {rank}
+                      </span>
+                      <div className="flex items-center gap-1 truncate">
+                        <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-semibold text-indigo-700">
+                          {CATEGORY_LABEL_MAP[prompt.category] ??
+                            prompt.category}
+                        </span>
+                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
+                          {AI_MODEL_LABEL_MAP[prompt.aiModel] ?? prompt.aiModel}
+                        </span>
+                      </div>
+                    </div>
+
+                    <h3 className="mt-2.5 line-clamp-2 text-sm font-bold text-slate-900 group-hover:text-indigo-600">
+                      {prompt.title}
+                    </h3>
+                  </div>
+
+                  <div className="mt-3 flex items-center justify-end gap-2.5 border-t border-slate-100 pt-2 text-[11px] text-slate-500">
+                    <span className="inline-flex items-center gap-1">
+                      <Heart
+                        className={`h-3 w-3 ${
+                          prompt.liked
+                            ? 'fill-rose-500 text-rose-500'
+                            : 'text-slate-400'
+                        }`}
+                      />
+                      {prompt.likeCount}
+                    </span>
+                    <span className="inline-flex items-center gap-1">
+                      <Copy className="h-3 w-3 text-slate-400" />
+                      {prompt.copyCount}
+                    </span>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* 검색 및 필터 바 */}
       <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-xs sm:p-5">
@@ -310,68 +403,7 @@ export function HomePage() {
       ) : (
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {prompts.map((prompt) => (
-            <Link
-              key={prompt.id}
-              to={`/prompts/${prompt.id}`}
-              className="group flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-xs transition-all hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md"
-            >
-              <div>
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-semibold text-indigo-700">
-                    {CATEGORY_LABEL_MAP[prompt.category] ?? prompt.category}
-                  </span>
-                  <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700">
-                    {AI_MODEL_LABEL_MAP[prompt.aiModel] ?? prompt.aiModel}
-                  </span>
-                </div>
-
-                <h2 className="mt-3 line-clamp-1 text-base font-bold text-slate-900 group-hover:text-indigo-600">
-                  {prompt.title}
-                </h2>
-                <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-slate-600">
-                  {prompt.content}
-                </p>
-              </div>
-
-              <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-3 text-xs text-slate-500">
-                <div className="flex items-center gap-1.5 truncate">
-                  <span className="truncate font-medium text-slate-700">
-                    {prompt.authorNickname}
-                  </span>
-                  <span>·</span>
-                  <span className="shrink-0">
-                    {formatDateTime(prompt.createdAt)}
-                  </span>
-                </div>
-
-                <div className="flex shrink-0 items-center gap-2.5">
-                  <span className="inline-flex items-center gap-1">
-                    <Heart
-                      className={`h-3.5 w-3.5 ${
-                        prompt.liked
-                          ? 'fill-rose-500 text-rose-500'
-                          : 'text-slate-400'
-                      }`}
-                    />
-                    {prompt.likeCount}
-                  </span>
-                  <span className="inline-flex items-center gap-1">
-                    <Bookmark
-                      className={`h-3.5 w-3.5 ${
-                        prompt.bookmarked
-                          ? 'fill-amber-500 text-amber-500'
-                          : 'text-slate-400'
-                      }`}
-                    />
-                    {prompt.bookmarkCount}
-                  </span>
-                  <span className="inline-flex items-center gap-1">
-                    <Copy className="h-3.5 w-3.5 text-slate-400" />
-                    {prompt.copyCount}
-                  </span>
-                </div>
-              </div>
-            </Link>
+            <PromptCard key={prompt.id} prompt={prompt} />
           ))}
         </div>
       )}

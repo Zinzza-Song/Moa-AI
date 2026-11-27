@@ -10,6 +10,12 @@ export interface UserResponse {
   role: Role;
 }
 
+export interface UserSummaryResponse {
+  writtenPromptCount: number;
+  likedPromptCount: number;
+  bookmarkedPromptCount: number;
+}
+
 export interface TokenResponse {
   accessToken: string;
   refreshToken: string;

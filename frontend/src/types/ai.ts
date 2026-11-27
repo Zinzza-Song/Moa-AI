@@ -8,7 +8,9 @@ export interface PromptRefineRequest {
 
 export interface PromptRefineResponse {
   originalPrompt: string;
+  suggestedTitle: string;
   refinedPrompt: string;
+  resultExample: string;
   improvements: string[];
   remainingDailyCount: number;
 }

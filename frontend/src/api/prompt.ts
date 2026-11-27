@@ -26,6 +26,18 @@ export async function getPrompts(
   return data.data;
 }
 
+export async function getPopularPrompts(
+  limit = 5,
+): Promise<PromptResponse[]> {
+  const { data } = await apiClient.get<ApiResponse<PromptResponse[]>>(
+    '/prompts/popular',
+    {
+      params: { limit },
+    },
+  );
+  return data.data;
+}
+
 export async function getPromptDetail(
   promptId: number,
 ): Promise<PromptResponse> {

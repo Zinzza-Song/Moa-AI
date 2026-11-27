@@ -6,6 +6,7 @@ import { AuthProvider } from './context/AuthContext';
 import { AiRefinePage } from './pages/AiRefinePage';
 import { HomePage } from './pages/HomePage';
 import { LoginPage } from './pages/LoginPage';
+import { MyPage } from './pages/MyPage';
 import { NewsCreatePage } from './pages/NewsCreatePage';
 import { NewsDetailPage } from './pages/NewsDetailPage';
 import { NewsPage } from './pages/NewsPage';
@@ -28,6 +29,7 @@ export function App() {
             <Route path="/oauth2/callback" element={<OAuth2CallbackPage />} />
 
             <Route element={<ProtectedRoute />}>
+              <Route path="/mypage" element={<MyPage />} />
               <Route path="/prompts/new" element={<PromptCreatePage />} />
               <Route path="/prompts/:id/edit" element={<PromptEditPage />} />
               <Route path="/ai/refine" element={<AiRefinePage />} />

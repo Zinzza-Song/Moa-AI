@@ -1,5 +1,6 @@
 package com.songzinzza.moaai.domain.prompt.service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -232,32 +233,83 @@ public class PromptService {
       throw new BusinessException(ErrorCode.NOT_PROMPT_OWNER);
   }
 
+  // public List<PromptResponse> getPopularList(int limit, Long currentUserId) {
+  // int safeLimit = Math.min(Math.max(limit, 1), 20);
+
+  // List<Long> topIds = promptRankingService.getTopPromptIds(safeLimit);
+
+  // List<Prompt> prompts;
+  // if (!topIds.isEmpty()) {
+  // Map<Long, Prompt> promptMap =
+  // promptRepository.findAllWithUserByIdIn(topIds).stream()
+  // .collect(Collectors.toMap(Prompt::getId, Function.identity()));
+
+  // // Redis ZSET 랭킹 순서 그대로 복원
+  // prompts = topIds.stream()
+  // .map(promptMap::get)
+  // .filter(Objects::nonNull)
+  // .toList();
+  // } else
+  // // Redis 초기 상태 또는 장애 시 DB 가중치 인기순 Fallback
+  // prompts = promptRepository.findTopPopular(PageRequest.of(0, safeLimit));
+
+  // if (prompts.isEmpty())
+  // return List.of();
+
+  // if (currentUserId == null)
+  // return prompts.stream()
+  // .map(p -> PromptResponse.of(p, false, false))
+  // .toList();
+
+  // List<Long> promptIds = prompts.stream().map(Prompt::getId).toList();
+  // Set<Long> likedIds = promptLikeRepository.findLikedPromptIds(currentUserId,
+  // promptIds);
+  // Set<Long> bookmarkedIds =
+  // promptBookmarkRepository.findBookmarkedPromptIds(currentUserId, promptIds);
+
+  // return prompts.stream()
+  // .map(p -> PromptResponse.of(p, likedIds.contains(p.getId()),
+  // bookmarkedIds.contains(p.getId())))
+  // .toList();
+  // }
   public List<PromptResponse> getPopularList(int limit, Long currentUserId) {
     int safeLimit = Math.min(Math.max(limit, 1), 20);
-
     List<Long> topIds = promptRankingService.getTopPromptIds(safeLimit);
 
-    List<Prompt> prompts;
+    List<Prompt> prompts = new ArrayList<>();
     if (!topIds.isEmpty()) {
       Map<Long, Prompt> promptMap = promptRepository.findAllWithUserByIdIn(topIds).stream()
           .collect(Collectors.toMap(Prompt::getId, Function.identity()));
 
-      // Redis ZSET 랭킹 순서 그대로 복원
-      prompts = topIds.stream()
+      topIds.stream()
           .map(promptMap::get)
           .filter(Objects::nonNull)
-          .toList();
-    } else
-      // Redis 초기 상태 또는 장애 시 DB 가중치 인기순 Fallback
-      prompts = promptRepository.findTopPopular(PageRequest.of(0, safeLimit));
+          .forEach(prompts::add);
+    }
+
+    // Redis 랭킹 항목이 limit보다 적으면 DB 가중치 인기순으로 부족한 개수 보충
+    if (prompts.size() < safeLimit) {
+      Set<Long> existingIds = prompts.stream().map(Prompt::getId).collect(Collectors.toSet());
+      List<Prompt> fallbackPrompts = promptRepository.findTopPopular(PageRequest.of(0, safeLimit));
+
+      for (Prompt p : fallbackPrompts) {
+        if (prompts.size() >= safeLimit)
+          break;
+        if (!existingIds.contains(p.getId())) {
+          prompts.add(p);
+          existingIds.add(p.getId());
+        }
+      }
+    }
 
     if (prompts.isEmpty())
       return List.of();
 
-    if (currentUserId == null)
+    if (currentUserId == null) {
       return prompts.stream()
           .map(p -> PromptResponse.of(p, false, false))
           .toList();
+    }
 
     List<Long> promptIds = prompts.stream().map(Prompt::getId).toList();
     Set<Long> likedIds = promptLikeRepository.findLikedPromptIds(currentUserId, promptIds);

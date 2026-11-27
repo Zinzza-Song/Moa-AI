@@ -6,8 +6,10 @@ import { extractApiError } from '../constants/promptOptions';
 import type { AiModel, PromptCreateRequest } from '../types/prompt';
 
 interface CreateLocationState {
-  initialContent?: string;
-  initialAiModel?: AiModel;
+  title?: string;
+  content?: string;
+  resultExample?: string;
+  aiModel?: AiModel;
 }
 
 export function PromptCreatePage() {
@@ -44,8 +46,10 @@ export function PromptCreatePage() {
           <PromptForm
             mode="create"
             initialValues={{
-              content: state?.initialContent ?? '',
-              aiModel: state?.initialAiModel ?? 'GEMINI',
+              title: state?.title ?? '',
+              content: state?.content ?? '',
+              resultExample: state?.resultExample ?? '',
+              aiModel: state?.aiModel ?? 'GEMINI',
             }}
             isSubmitting={isSubmitting}
             submitError={submitError}

@@ -123,8 +123,10 @@ export function AiRefinePage() {
     if (!result) return;
     navigate('/prompts/new', {
       state: {
-        initialContent: result.refinedPrompt,
-        initialAiModel: targetModel || undefined,
+        title: result.suggestedTitle,
+        content: result.refinedPrompt,
+        resultExample: result.resultExample,
+        aiModel: targetModel || undefined,
       },
     });
   };
@@ -304,9 +306,34 @@ export function AiRefinePage() {
             </div>
           </div>
 
-          <pre className="overflow-x-auto rounded-xl border border-slate-200 bg-slate-50 p-5 font-mono text-sm leading-relaxed whitespace-pre-wrap text-slate-800">
-            {result.refinedPrompt}
-          </pre>
+          {result.suggestedTitle && (
+            <div className="rounded-xl border border-indigo-100 bg-indigo-50/60 px-4 py-3">
+              <p className="text-xs font-semibold text-indigo-700">추천 제목</p>
+              <p className="mt-1 text-base font-bold text-slate-900">
+                {result.suggestedTitle}
+              </p>
+            </div>
+          )}
+
+          <div>
+            <p className="mb-1.5 text-xs font-semibold text-slate-500">
+              프롬프트 본문
+            </p>
+            <pre className="overflow-x-auto rounded-xl border border-slate-200 bg-slate-50 p-5 font-mono text-sm leading-relaxed whitespace-pre-wrap text-slate-800">
+              {result.refinedPrompt}
+            </pre>
+          </div>
+
+          {result.resultExample && (
+            <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4">
+              <h3 className="text-sm font-semibold text-slate-800">
+                실행 결과 예시
+              </h3>
+              <pre className="mt-2 overflow-x-auto whitespace-pre-wrap font-sans text-sm leading-relaxed text-slate-700">
+                {result.resultExample}
+              </pre>
+            </div>
+          )}
 
           {result.improvements.length > 0 && (
             <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-4">

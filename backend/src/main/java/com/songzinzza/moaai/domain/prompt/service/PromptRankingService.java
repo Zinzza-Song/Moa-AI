@@ -55,4 +55,25 @@ public class PromptRankingService {
       return Collections.emptyList();
     }
   }
+
+  public boolean isEmpty() {
+    try {
+      Long size = redisTemplate.opsForZSet().zCard(POPULAR_RANKING_KEY);
+
+      return size == null || size == 0L;
+    } catch (Exception e) {
+      log.warn("Redis 인기 랭킹 크기 확인 실패", e);
+
+      return false;
+    }
+  }
+
+  public void syncScore(Long promptId, double score) {
+    try {
+      if (score > 0)
+        redisTemplate.opsForZSet().add(POPULAR_RANKING_KEY, String.valueOf(promptId), score);
+    } catch (Exception e) {
+      log.warn("Redis 인기 랭킹 초기 동기화 실패 - PromptId={}", promptId, e);
+    }
+  }
 }

@@ -74,10 +74,13 @@ export function Header() {
             <div className="h-9 w-24 animate-pulse rounded-lg bg-slate-100" />
           ) : isAuthenticated && user ? (
             <div className="flex items-center gap-2">
-              <div className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-3 py-2 text-sm font-medium text-slate-700">
+              <Link
+                to="/mypage"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-200 hover:text-slate-900"
+              >
                 <User className="h-4 w-4 text-indigo-600" />
                 <span>{user.nickname}</span>
-              </div>
+              </Link>
               <button
                 type="button"
                 onClick={handleLogout}
@@ -139,10 +142,14 @@ export function Header() {
 
               {!isLoading && isAuthenticated && user ? (
                 <>
-                  <div className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-slate-100 px-3.5 py-2 text-sm font-medium text-slate-700">
+                  <Link
+                    to="/mypage"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-slate-100 px-3.5 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-200 hover:text-slate-900"
+                  >
                     <User className="h-4 w-4 text-indigo-600" />
                     <span>{user.nickname}</span>
-                  </div>
+                  </Link>
                   <button
                     type="button"
                     onClick={handleLogout}
