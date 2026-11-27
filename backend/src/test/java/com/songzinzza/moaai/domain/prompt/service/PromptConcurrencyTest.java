@@ -29,7 +29,6 @@ import com.songzinzza.moaai.domain.user.repository.UserRepository;
 
 @SpringBootTest
 class PromptConcurrencyTest {
-
   @Autowired
   private PromptService promptService;
 
@@ -44,6 +43,9 @@ class PromptConcurrencyTest {
 
   @Autowired
   private TransactionTemplate transactionTemplate;
+
+  @Autowired
+  private PromptRankingService promptRankingService;
 
   private Long promptId;
 
@@ -78,7 +80,10 @@ class PromptConcurrencyTest {
     transactionTemplate.executeWithoutResult(status -> {
       if (promptId != null) {
         promptLikeRepository.deleteByPromptId(promptId);
+
         promptRepository.deleteById(promptId);
+
+        promptRankingService.removePrompt(promptId);
       }
       userRepository.deleteAllById(createdUserIds);
     });

@@ -55,6 +55,9 @@ class PromptServiceTest {
   @Mock
   private PromptCacheService promptCacheService;
 
+  @Mock
+  private PromptRankingService promptRankingService;
+
   @InjectMocks
   private PromptService promptService;
 

@@ -18,6 +18,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
+import java.util.List;
+
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -108,4 +110,13 @@ public class PromptController {
   public ApiResponse<Long> increaseCopyCount(@PathVariable Long promptId) {
     return ApiResponse.ok(promptService.increaseCopyCount(promptId));
   }
+
+  @Operation(summary = "실시간 인기 프롬프트 조회", description = "Redis ZSET 기반 실시간 인기 프롬프트 TOP N 조회 (기본 5개)")
+  @GetMapping("/popular")
+  public ApiResponse<List<PromptResponse>> getPopularList(
+      @RequestParam(defaultValue = "5") int limit,
+      @AuthenticationPrincipal Long currentUserId) {
+    return ApiResponse.ok(promptService.getPopularList(limit, currentUserId));
+  }
+
 }

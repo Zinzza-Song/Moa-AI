@@ -15,6 +15,8 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 public interface PromptRepository extends JpaRepository<Prompt, Long> {
@@ -71,4 +73,15 @@ public interface PromptRepository extends JpaRepository<Prompt, Long> {
 
   @Query("SELECT p.bookmarkCount FROM Prompt p WHERE p.id = :id")
   Optional<Long> findBookmarkCountById(@Param("id") Long id);
+
+  // 실시간 인기 랭킹 조회용
+  @EntityGraph(attributePaths = { "user" })
+  List<Prompt> findAllWithUserByIdIn(Collection<Long> ids);
+
+  @EntityGraph(attributePaths = { "user" })
+  @Query("""
+      SELECT p FROM Prompt p
+      ORDER BY (p.likeCount * 3 + p.bookmarkCount * 2 + p.copyCount * 2) DESC, p.createdAt DESC
+      """)
+  List<Prompt> findTopPopular(Pageable pageable);
 }

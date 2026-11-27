@@ -1,10 +1,15 @@
 package com.songzinzza.moaai.domain.prompt.service;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Caching;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,6 +44,7 @@ public class PromptService {
   private final PromptBookmarkRepository promptBookmarkRepository;
   private final UserRepository userRepository;
   private final PromptCacheService promptCacheService;
+  private final PromptRankingService promptRankingService;
 
   @Transactional
   @CacheEvict(value = RedisCacheConfig.PROMPT_LIST, allEntries = true)
@@ -125,6 +131,7 @@ public class PromptService {
     promptLikeRepository.deleteByPromptId(promptId);
     promptBookmarkRepository.deleteByPromptId(promptId);
     promptRepository.delete(prompt);
+    promptRankingService.removePrompt(promptId);
   }
 
   @Transactional
@@ -143,12 +150,16 @@ public class PromptService {
 
           prompt.decreaseLike();
 
+          promptRankingService.addScore(promptId, -PromptRankingService.LIKE_SCORE);
+
           return new PromptToggleResponse(false, prompt.getLikeCount());
         })
         .orElseGet(() -> {
           promptLikeRepository.save(new PromptLike(user, prompt));
 
           prompt.increaseLike();
+
+          promptRankingService.addScore(promptId, PromptRankingService.LIKE_SCORE);
 
           return new PromptToggleResponse(true, prompt.getLikeCount());
         });
@@ -170,12 +181,16 @@ public class PromptService {
 
           prompt.decreaseBookmark();
 
+          promptRankingService.addScore(promptId, -PromptRankingService.BOOKMARK_SCORE);
+
           return new PromptToggleResponse(false, prompt.getBookmarkCount());
         })
         .orElseGet(() -> {
           promptBookmarkRepository.save(new PromptBookmark(user, prompt));
 
           prompt.increaseBookmark();
+
+          promptRankingService.addScore(promptId, PromptRankingService.BOOKMARK_SCORE);
 
           return new PromptToggleResponse(true, prompt.getBookmarkCount());
         });
@@ -190,6 +205,8 @@ public class PromptService {
     int updated = promptRepository.incrementCopyCount(promptId);
     if (updated == 0)
       throw new BusinessException(ErrorCode.PROMPT_NOT_FOUND);
+
+    promptRankingService.addScore(promptId, PromptRankingService.COPY_SCORE);
 
     return promptRepository.findCopyCountById(promptId)
         .orElseThrow(() -> new BusinessException(ErrorCode.PROMPT_NOT_FOUND));
@@ -213,5 +230,41 @@ public class PromptService {
   private void validateOwner(Prompt prompt, Long userId) {
     if (!prompt.getUser().getId().equals(userId))
       throw new BusinessException(ErrorCode.NOT_PROMPT_OWNER);
+  }
+
+  public List<PromptResponse> getPopularList(int limit, Long currentUserId) {
+    int safeLimit = Math.min(Math.max(limit, 1), 20);
+
+    List<Long> topIds = promptRankingService.getTopPromptIds(safeLimit);
+
+    List<Prompt> prompts;
+    if (!topIds.isEmpty()) {
+      Map<Long, Prompt> promptMap = promptRepository.findAllWithUserByIdIn(topIds).stream()
+          .collect(Collectors.toMap(Prompt::getId, Function.identity()));
+
+      // Redis ZSET 랭킹 순서 그대로 복원
+      prompts = topIds.stream()
+          .map(promptMap::get)
+          .filter(Objects::nonNull)
+          .toList();
+    } else
+      // Redis 초기 상태 또는 장애 시 DB 가중치 인기순 Fallback
+      prompts = promptRepository.findTopPopular(PageRequest.of(0, safeLimit));
+
+    if (prompts.isEmpty())
+      return List.of();
+
+    if (currentUserId == null)
+      return prompts.stream()
+          .map(p -> PromptResponse.of(p, false, false))
+          .toList();
+
+    List<Long> promptIds = prompts.stream().map(Prompt::getId).toList();
+    Set<Long> likedIds = promptLikeRepository.findLikedPromptIds(currentUserId, promptIds);
+    Set<Long> bookmarkedIds = promptBookmarkRepository.findBookmarkedPromptIds(currentUserId, promptIds);
+
+    return prompts.stream()
+        .map(p -> PromptResponse.of(p, likedIds.contains(p.getId()), bookmarkedIds.contains(p.getId())))
+        .toList();
   }
 }
