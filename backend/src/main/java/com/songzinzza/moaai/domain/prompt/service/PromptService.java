@@ -133,19 +133,21 @@ public class PromptService {
       @CacheEvict(value = RedisCacheConfig.PROMPT_DETAIL, key = "#promptId")
   })
   public PromptToggleResponse toggleLike(Long promptId, Long userId) {
-    Prompt prompt = findPrompt(promptId);
+    Prompt prompt = findPromptForUpdate(promptId);
 
     User user = findUser(userId);
 
     return promptLikeRepository.findByUserIdAndPromptId(userId, promptId)
         .map(existing -> {
           promptLikeRepository.delete(existing);
-          prompt.decreaseLilke();
+
+          prompt.decreaseLike();
 
           return new PromptToggleResponse(false, prompt.getLikeCount());
         })
         .orElseGet(() -> {
           promptLikeRepository.save(new PromptLike(user, prompt));
+
           prompt.increaseLike();
 
           return new PromptToggleResponse(true, prompt.getLikeCount());
@@ -158,19 +160,21 @@ public class PromptService {
       @CacheEvict(value = RedisCacheConfig.PROMPT_DETAIL, key = "#promptId")
   })
   public PromptToggleResponse toggleBookmark(Long promptId, Long userId) {
-    Prompt prompt = findPrompt(promptId);
+    Prompt prompt = findPromptForUpdate(promptId);
 
     User user = findUser(userId);
 
     return promptBookmarkRepository.findByUserIdAndPromptId(userId, promptId)
         .map(existing -> {
           promptBookmarkRepository.delete(existing);
+
           prompt.decreaseBookmark();
 
           return new PromptToggleResponse(false, prompt.getBookmarkCount());
         })
         .orElseGet(() -> {
           promptBookmarkRepository.save(new PromptBookmark(user, prompt));
+
           prompt.increaseBookmark();
 
           return new PromptToggleResponse(true, prompt.getBookmarkCount());
@@ -183,10 +187,12 @@ public class PromptService {
       @CacheEvict(value = RedisCacheConfig.PROMPT_DETAIL, key = "#promptId")
   })
   public long increaseCopyCount(Long promptId) {
-    Prompt prompt = findPrompt(promptId);
-    prompt.increaseCopy();
+    int updated = promptRepository.incrementCopyCount(promptId);
+    if (updated == 0)
+      throw new BusinessException(ErrorCode.PROMPT_NOT_FOUND);
 
-    return prompt.getCopyCount();
+    return promptRepository.findCopyCountById(promptId)
+        .orElseThrow(() -> new BusinessException(ErrorCode.PROMPT_NOT_FOUND));
   }
 
   private User findUser(Long userId) {
@@ -194,8 +200,8 @@ public class PromptService {
         .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
   }
 
-  private Prompt findPrompt(Long promptId) {
-    return promptRepository.findById(promptId)
+  private Prompt findPromptForUpdate(Long promptId) {
+    return promptRepository.findByIdForUpdate(promptId)
         .orElseThrow(() -> new BusinessException(ErrorCode.PROMPT_NOT_FOUND));
   }
 

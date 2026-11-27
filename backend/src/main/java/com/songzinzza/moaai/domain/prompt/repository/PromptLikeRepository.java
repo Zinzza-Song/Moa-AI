@@ -5,6 +5,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -19,4 +20,8 @@ public interface PromptLikeRepository extends JpaRepository<PromptLike, Long> {
   Set<Long> findLikedPromptIds(@Param("userId") Long userId, @Param("promptIds") List<Long> promptIds);
 
   void deleteByPromptId(Long promptId);
+
+  @Modifying
+  @Query("DELETE FROM PromptLike pl WHERE pl.user.id = :userId AND pl.prompt.id = :promptId")
+  int deleteByUserIdAndPromptId(@Param("userId") Long userId, @Param("promptId") Long promptId);
 }

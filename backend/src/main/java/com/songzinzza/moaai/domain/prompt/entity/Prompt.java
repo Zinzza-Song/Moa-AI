@@ -87,7 +87,7 @@ public class Prompt extends BaseTimeEntity {
     this.likeCount++;
   }
 
-  public void decreaseLilke() {
+  public void decreaseLike() {
     if (this.likeCount > 0)
       this.likeCount--;
   }

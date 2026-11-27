@@ -134,14 +134,14 @@ class PromptServiceTest {
     User user = createUser(1L);
     Prompt prompt = createPrompt(100L, user);
 
-    given(promptRepository.findById(100L)).willReturn(Optional.of(prompt));
+    given(promptRepository.findByIdForUpdate(100L)).willReturn(Optional.of(prompt));
     given(userRepository.findById(1L)).willReturn(Optional.of(user));
     given(promptLikeRepository.findByUserIdAndPromptId(1L, 100L)).willReturn(Optional.empty());
 
-    PromptToggleResponse res = promptService.toggleLike(100L, 1L);
+    PromptToggleResponse response = promptService.toggleLike(100L, 1L);
 
-    assertThat(res.active()).isTrue();
-    assertThat(res.count()).isEqualTo(1L);
+    assertThat(response.active()).isTrue();
+    assertThat(response.count()).isEqualTo(1L);
     verify(promptLikeRepository).save(any(PromptLike.class));
   }
 
@@ -151,16 +151,17 @@ class PromptServiceTest {
     User user = createUser(1L);
     Prompt prompt = createPrompt(100L, user);
     prompt.increaseLike();
+
     PromptLike existingLike = new PromptLike(user, prompt);
 
-    given(promptRepository.findById(100L)).willReturn(Optional.of(prompt));
+    given(promptRepository.findByIdForUpdate(100L)).willReturn(Optional.of(prompt));
     given(userRepository.findById(1L)).willReturn(Optional.of(user));
     given(promptLikeRepository.findByUserIdAndPromptId(1L, 100L)).willReturn(Optional.of(existingLike));
 
-    PromptToggleResponse res = promptService.toggleLike(100L, 1L);
+    PromptToggleResponse response = promptService.toggleLike(100L, 1L);
 
-    assertThat(res.active()).isFalse();
-    assertThat(res.count()).isEqualTo(0L);
+    assertThat(response.active()).isFalse();
+    assertThat(response.count()).isEqualTo(0L);
     verify(promptLikeRepository).delete(existingLike);
   }
 
