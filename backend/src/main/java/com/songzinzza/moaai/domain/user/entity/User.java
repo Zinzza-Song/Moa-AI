@@ -54,7 +54,7 @@ public class User extends BaseTimeEntity {
   }
 
   public void updateProfile(String nickname, String email) {
-    if (nickname != null && !email.isBlank())
+    if (nickname != null && !nickname.isBlank())
       this.nickname = nickname;
 
     if (email != null && !email.isBlank())
