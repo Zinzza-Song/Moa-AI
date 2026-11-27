@@ -24,7 +24,6 @@ import com.songzinzza.moaai.global.exception.ErrorCode;
 
 @ExtendWith(MockitoExtension.class)
 class PromptRefineServiceTest {
-
   @Mock
   private ChatClient.Builder chatClientBuilder;
 

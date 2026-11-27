@@ -22,7 +22,6 @@ import com.songzinzza.moaai.global.exception.ErrorCode;
 
 @ExtendWith(MockitoExtension.class)
 class AiRateLimitServiceTest {
-
   @Mock
   private StringRedisTemplate redisTemplate;
 
