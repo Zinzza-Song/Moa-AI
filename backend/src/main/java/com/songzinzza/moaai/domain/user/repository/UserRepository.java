@@ -9,4 +9,6 @@ import com.songzinzza.moaai.domain.user.entity.User;
 
 public interface UserRepository extends JpaRepository<User, Long> {
   Optional<User> findByProviderAndProviderId(SocialProvider provider, String providerId);
+
+  boolean existsByNicknameAndIdNot(String nickname, Long id);
 }

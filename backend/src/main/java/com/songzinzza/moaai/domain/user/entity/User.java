@@ -44,6 +44,9 @@ public class User extends BaseTimeEntity {
   @Column(nullable = false, length = 20)
   private Role role;
 
+  @Column(name = "profile_image_url", length = 500)
+  private String profileImageUrl;
+
   @Builder
   public User(String email, String nickname, SocialProvider provider, String providerId, Role role) {
     this.email = email;
@@ -53,10 +56,16 @@ public class User extends BaseTimeEntity {
     this.role = role != null ? role : Role.USER;
   }
 
-  public void updateProfile(String nickname, String email) {
+  public void updateNickname(String nickname) {
     if (nickname != null && !nickname.isBlank())
-      this.nickname = nickname;
+      this.nickname = nickname.trim();
+  }
 
+  public void updateProfileImageUrl(String profileImageUrl) {
+    this.profileImageUrl = profileImageUrl;
+  }
+
+  public void updateEmail(String email) {
     if (email != null && !email.isBlank())
       this.email = email;
   }

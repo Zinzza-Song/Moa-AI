@@ -6,8 +6,13 @@ export interface UserResponse {
   id: number;
   email: string;
   nickname: string;
+  profileImageUrl: string | null;
   provider: SocialProvider;
   role: Role;
+}
+
+export interface UpdateNicknameRequest {
+  nickname: string;
 }
 
 export interface UserSummaryResponse {

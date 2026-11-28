@@ -9,13 +9,15 @@ public record UserResponse(
     String email,
     String nickname,
     SocialProvider provider,
-    Role role) {
+    Role role,
+    String profileImageUrl) {
   public static UserResponse from(User user) {
     return new UserResponse(
         user.getId(),
         user.getEmail(),
         user.getNickname(),
         user.getProvider(),
-        user.getRole());
+        user.getRole(),
+        user.getProfileImageUrl());
   }
 }

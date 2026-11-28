@@ -76,9 +76,17 @@ export function Header() {
             <div className="flex items-center gap-2">
               <Link
                 to="/mypage"
-                className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-200 hover:text-slate-900"
+                className="inline-flex items-center gap-2 rounded-lg bg-slate-100 px-3 py-1.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-200 hover:text-slate-900"
               >
-                <User className="h-4 w-4 text-indigo-600" />
+                {user.profileImageUrl ? (
+                  <img
+                    src={user.profileImageUrl}
+                    alt={`${user.nickname} 프로필`}
+                    className="h-6 w-6 rounded-full object-cover"
+                  />
+                ) : (
+                  <User className="h-4 w-4 text-indigo-600" />
+                )}
                 <span>{user.nickname}</span>
               </Link>
               <button
@@ -145,9 +153,17 @@ export function Header() {
                   <Link
                     to="/mypage"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-slate-100 px-3.5 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-200 hover:text-slate-900"
+                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-100 px-3.5 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-200 hover:text-slate-900"
                   >
-                    <User className="h-4 w-4 text-indigo-600" />
+                    {user.profileImageUrl ? (
+                      <img
+                        src={user.profileImageUrl}
+                        alt={`${user.nickname} 프로필`}
+                        className="h-5 w-5 rounded-full object-cover"
+                      />
+                    ) : (
+                      <User className="h-4 w-4 text-indigo-600" />
+                    )}
                     <span>{user.nickname}</span>
                   </Link>
                   <button

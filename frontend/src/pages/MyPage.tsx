@@ -1,20 +1,36 @@
-import { useCallback, useEffect, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type FormEvent,
+} from 'react';
 import { Link } from 'react-router-dom';
 import {
   Bookmark,
+  Camera,
+  Check,
   ChevronLeft,
   ChevronRight,
   FileText,
   Heart,
+  Loader2,
+  Pencil,
   PlusCircle,
   Sparkles,
+  Trash2,
   User,
+  X,
 } from 'lucide-react';
 import {
+  deleteMyProfileImage,
   getMyBookmarkedPrompts,
   getMyLikedPrompts,
   getMyPrompts,
   getMySummary,
+  updateMyNickname,
+  uploadMyProfileImage,
 } from '../api/auth';
 import { togglePromptBookmark, togglePromptLike } from '../api/prompt';
 import { PromptCard } from '../components/prompt/PromptCard';
@@ -44,8 +60,25 @@ const TAB_ITEMS: { key: MyPageTab; label: string; emptyText: string }[] = [
   },
 ];
 
+const MAX_PROFILE_IMAGE_BYTES = 5 * 1024 * 1024;
+const ALLOWED_IMAGE_TYPES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+]);
+const ALLOWED_IMAGE_EXTENSIONS = /\.(jpe?g|png|webp)$/i;
+
 export function MyPage() {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const [isEditingNickname, setIsEditingNickname] = useState<boolean>(false);
+  const [nicknameInput, setNicknameInput] = useState<string>('');
+  const [isSavingNickname, setIsSavingNickname] = useState<boolean>(false);
+  const [nicknameError, setNicknameError] = useState<string | null>(null);
+
+  const [isUpdatingImage, setIsUpdatingImage] = useState<boolean>(false);
+  const [imageError, setImageError] = useState<string | null>(null);
 
   const [summary, setSummary] = useState<UserSummaryResponse | null>(null);
   const [activeTab, setActiveTab] = useState<MyPageTab>('prompts');
@@ -99,6 +132,102 @@ export function MyPage() {
   useEffect(() => {
     void fetchTabPrompts();
   }, [fetchTabPrompts]);
+
+  const handleStartNicknameEdit = () => {
+    setNicknameInput(user?.nickname ?? '');
+    setNicknameError(null);
+    setIsEditingNickname(true);
+  };
+
+  const handleCancelNicknameEdit = () => {
+    setIsEditingNickname(false);
+    setNicknameError(null);
+  };
+
+  const handleNicknameSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (isSavingNickname) return;
+
+    const trimmed = nicknameInput.trim();
+    if (trimmed.length < 2 || trimmed.length > 20) {
+      setNicknameError('닉네임은 2자 이상 20자 이하로 입력해 주세요.');
+      return;
+    }
+    if (trimmed === user?.nickname) {
+      setIsEditingNickname(false);
+      setNicknameError(null);
+      return;
+    }
+
+    setIsSavingNickname(true);
+    setNicknameError(null);
+    try {
+      const updated = await updateMyNickname(trimmed);
+      updateUser(updated);
+      setIsEditingNickname(false);
+    } catch (error) {
+      const { message } = extractApiError(
+        error,
+        '닉네임 수정에 실패했습니다.',
+      );
+      setNicknameError(message);
+    } finally {
+      setIsSavingNickname(false);
+    }
+  };
+
+  const handleProfileImageSelect = async (
+    e: ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || isUpdatingImage) return;
+
+    const isValidType =
+      ALLOWED_IMAGE_TYPES.has(file.type) ||
+      ALLOWED_IMAGE_EXTENSIONS.test(file.name);
+    if (!isValidType) {
+      setImageError('jpg, jpeg, png, webp 형식의 이미지만 업로드할 수 있습니다.');
+      return;
+    }
+    if (file.size > MAX_PROFILE_IMAGE_BYTES) {
+      setImageError('프로필 이미지는 최대 5MB까지 업로드할 수 있습니다.');
+      return;
+    }
+
+    setIsUpdatingImage(true);
+    setImageError(null);
+    try {
+      const updated = await uploadMyProfileImage(file);
+      updateUser(updated);
+    } catch (error) {
+      const { message } = extractApiError(
+        error,
+        '프로필 이미지 업로드에 실패했습니다.',
+      );
+      setImageError(message);
+    } finally {
+      setIsUpdatingImage(false);
+    }
+  };
+
+  const handleDeleteProfileImage = async () => {
+    if (isUpdatingImage) return;
+    setIsUpdatingImage(true);
+    setImageError(null);
+    try {
+      const updated = await deleteMyProfileImage();
+      updateUser(updated);
+    } catch (error) {
+      const { message } = extractApiError(
+        error,
+        '프로필 이미지 삭제에 실패했습니다.',
+      );
+      setImageError(message);
+    } finally {
+      setIsUpdatingImage(false);
+    }
+  };
 
   const handleTabChange = (tab: MyPageTab) => {
     if (tab === activeTab) return;
@@ -197,28 +326,144 @@ export function MyPage() {
       {/* 상단 프로필 & 활동 요약 카드 */}
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs sm:p-8">
         <div className="flex flex-col justify-between gap-6 md:flex-row md:items-center">
-          <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600">
-              <User className="h-7 w-7" />
+          <div className="flex items-start gap-4 sm:items-center">
+            <div className="relative shrink-0">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+                onChange={(e) => void handleProfileImageSelect(e)}
+                className="hidden"
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUpdatingImage}
+                aria-label="프로필 이미지 변경"
+                className="group relative flex h-16 w-16 cursor-pointer items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-indigo-50 text-indigo-600 transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 sm:h-20 sm:w-20"
+              >
+                {user?.profileImageUrl ? (
+                  <img
+                    src={user.profileImageUrl}
+                    alt={`${user.nickname} 프로필`}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <User className="h-8 w-8 sm:h-9 sm:w-9" />
+                )}
+                {isUpdatingImage && (
+                  <span className="absolute inset-0 flex items-center justify-center bg-slate-900/40 text-white">
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  </span>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUpdatingImage}
+                aria-label="프로필 이미지 선택"
+                className="absolute -right-1 -bottom-1 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-xs transition-colors hover:bg-slate-50 hover:text-indigo-600 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Camera className="h-3.5 w-3.5" />
+              </button>
             </div>
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">
-                  {user?.nickname ?? '마이페이지'}
-                </h1>
-                {user?.provider && (
-                  <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600">
-                    {user.provider}
-                  </span>
-                )}
-                {user?.role === 'ADMIN' && (
-                  <span className="rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-semibold text-indigo-700">
-                    ADMIN
-                  </span>
-                )}
-              </div>
+
+            <div className="min-w-0 flex-1">
+              {isEditingNickname ? (
+                <form
+                  onSubmit={(e) => void handleNicknameSubmit(e)}
+                  className="space-y-1.5"
+                >
+                  <div className="flex flex-wrap items-center gap-2">
+                    <input
+                      type="text"
+                      value={nicknameInput}
+                      maxLength={20}
+                      onChange={(e) => {
+                        setNicknameInput(e.target.value);
+                        if (nicknameError) setNicknameError(null);
+                      }}
+                      placeholder="닉네임 (2~20자)"
+                      autoFocus
+                      className="w-44 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-900 focus:border-indigo-500 focus:outline-none sm:w-52"
+                    />
+                    <button
+                      type="submit"
+                      disabled={isSavingNickname}
+                      className="inline-flex cursor-pointer items-center gap-1 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {isSavingNickname ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Check className="h-3.5 w-3.5" />
+                      )}
+                      <span>저장</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleCancelNicknameEdit}
+                      disabled={isSavingNickname}
+                      className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                      <span>취소</span>
+                    </button>
+                  </div>
+                  {nicknameError && (
+                    <p className="text-xs font-medium text-red-600">
+                      {nicknameError}
+                    </p>
+                  )}
+                </form>
+              ) : (
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">
+                    {user?.nickname ?? '마이페이지'}
+                  </h1>
+                  <button
+                    type="button"
+                    onClick={handleStartNicknameEdit}
+                    className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-indigo-600"
+                  >
+                    <Pencil className="h-3 w-3" />
+                    <span>수정</span>
+                  </button>
+                  {user?.provider && (
+                    <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600">
+                      {user.provider}
+                    </span>
+                  )}
+                  {user?.role === 'ADMIN' && (
+                    <span className="rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-semibold text-indigo-700">
+                      ADMIN
+                    </span>
+                  )}
+                </div>
+              )}
+
               {user?.email && (
                 <p className="mt-1 text-sm text-slate-500">{user.email}</p>
+              )}
+
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                {user?.profileImageUrl && (
+                  <button
+                    type="button"
+                    onClick={() => void handleDeleteProfileImage()}
+                    disabled={isUpdatingImage}
+                    className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                    <span>기본 이미지로 변경</span>
+                  </button>
+                )}
+              </div>
+
+              {imageError && (
+                <p className="mt-1.5 text-xs font-medium text-red-600">
+                  {imageError}
+                </p>
               )}
             </div>
           </div>

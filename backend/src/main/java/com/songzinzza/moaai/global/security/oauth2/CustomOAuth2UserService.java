@@ -30,7 +30,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
     User user = userRepository.findByProviderAndProviderId(provider, userInfo.getProviderId())
         .map(existing -> {
-          existing.updateProfile(userInfo.getNickname(), userInfo.getEmail());
+          existing.updateEmail(userInfo.getEmail());
 
           return existing;
         })

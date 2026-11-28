@@ -17,6 +17,7 @@ public enum ErrorCode { // 에러 코드들
   INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "A002", "유효하지 않거나 만료된 토큰입니다."),
   ACCESS_DENIED(HttpStatus.FORBIDDEN, "A003", "접근 권한이 없습니다."),
   USER_NOT_FOUND(HttpStatus.NOT_FOUND, "U001", "사용자를 찾을 수 없습니다."),
+  DUPLICATE_NICKNAME(HttpStatus.CONFLICT, "U002", "이미 사용 중인 닉네임입니다."),
 
   // Prompt
   PROMPT_NOT_FOUND(HttpStatus.NOT_FOUND, "P001", "프롬프트를 찾을 수 없습니다."),
@@ -26,7 +27,11 @@ public enum ErrorCode { // 에러 코드들
 
   // News
   NEWS_NOT_FOUND(HttpStatus.NOT_FOUND, "N001", "AI 트렌드 뉴스를 찾을 수 없습니다."),
-  DUPLICATE_NEWS_URL(HttpStatus.CONFLICT, "N002", "이미 등록된 뉴스 URL입니다.");
+  DUPLICATE_NEWS_URL(HttpStatus.CONFLICT, "N002", "이미 등록된 뉴스 URL입니다."),
+
+  // File
+  INVALID_FILE(HttpStatus.BAD_REQUEST, "F001", "지원하지 않는 파일 형식이거나 용량을 초과했습니다."),
+  FILE_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "F002", "파일 업로드 중 오류가 발생했습니다.");
 
   private final HttpStatus status;
   private final String code;

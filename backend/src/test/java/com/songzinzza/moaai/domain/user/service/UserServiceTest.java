@@ -31,6 +31,7 @@ import com.songzinzza.moaai.domain.user.entity.SocialProvider;
 import com.songzinzza.moaai.domain.user.entity.User;
 import com.songzinzza.moaai.domain.user.repository.UserRepository;
 import com.songzinzza.moaai.global.common.PageResponse;
+import com.songzinzza.moaai.global.storage.ImageStorageService;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
@@ -45,6 +46,9 @@ class UserServiceTest {
 
   @Mock
   private PromptBookmarkRepository promptBookmarkRepository;
+
+  @Mock
+  private ImageStorageService imageStorageService;
 
   @InjectMocks
   private UserService userService;
@@ -146,5 +150,52 @@ class UserServiceTest {
         .build();
     ReflectionTestUtils.setField(prompt, "id", id);
     return prompt;
+  }
+
+  @Test
+  @DisplayName("닉네임 수정 시 중복이 아니면 정상 변경")
+  void updateProfile_success() {
+    User user = createUser(1L);
+
+    given(userRepository.findById(1L)).willReturn(java.util.Optional.of(user));
+    given(userRepository.existsByNicknameAndIdNot("새닉네임", 1L)).willReturn(false);
+
+    var response = userService.updateProfile(1L,
+        new com.songzinzza.moaai.domain.user.dto.UserProfileUpdateRequest("새닉네임"));
+
+    assertThat(response.nickname()).isEqualTo("새닉네임");
+  }
+
+  @Test
+  @DisplayName("이미 사용 중인 닉네임으로 수정 시 DUPLICATE_NICKNAME 예외가 발생")
+  void updateProfile_duplicateNickname_throwsException() {
+    User user = createUser(1L);
+
+    given(userRepository.findById(1L)).willReturn(java.util.Optional.of(user));
+    given(userRepository.existsByNicknameAndIdNot("중복닉네임", 1L)).willReturn(true);
+
+    org.assertj.core.api.Assertions.assertThatThrownBy(
+        () -> userService.updateProfile(1L, new com.songzinzza.moaai.domain.user.dto.UserProfileUpdateRequest("중복닉네임")))
+        .isInstanceOf(com.songzinzza.moaai.global.exception.BusinessException.class)
+        .extracting("errorCode")
+        .isEqualTo(com.songzinzza.moaai.global.exception.ErrorCode.DUPLICATE_NICKNAME);
+  }
+
+  @Test
+  @DisplayName("프로필 이미지 변경 시 새 이미지를 저장하고 기존 이미지를 삭제")
+  void updateProfileImage_replacesOldImage() {
+    User user = createUser(1L);
+    user.updateProfileImageUrl("/uploads/profiles/old.png");
+
+    var file = new org.springframework.mock.web.MockMultipartFile(
+        "file", "new.png", "image/png", "dummy".getBytes());
+
+    given(userRepository.findById(1L)).willReturn(java.util.Optional.of(user));
+    given(imageStorageService.store(file, "profiles")).willReturn("/uploads/profiles/new.png");
+
+    var response = userService.updateProfileImage(1L, file);
+
+    assertThat(response.profileImageUrl()).isEqualTo("/uploads/profiles/new.png");
+    verify(imageStorageService).delete("/uploads/profiles/old.png");
   }
 }
