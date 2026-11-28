@@ -20,6 +20,7 @@ public class RedisCacheConfig {
   public static final String NEWS_DETAIL = "news:detail";
   public static final String PROMPT_LIST = "prompt:list";
   public static final String PROMPT_DETAIL = "prompt:detail";
+  public static final String AI_VIDEOS = "aiVideos";
 
   @Bean
   public RedisCacheManager cacheManager(RedisConnectionFactory connectionFactory) {
@@ -40,6 +41,8 @@ public class RedisCacheConfig {
     return RedisCacheManager.builder(connectionFactory)
         .cacheDefaults(defaultConfig)
         .withInitialCacheConfigurations(cacheConfigs)
+        .withCacheConfiguration(AI_VIDEOS,
+            defaultConfig.entryTtl(Duration.ofHours(6))) // 6시간
         .build();
   }
 }

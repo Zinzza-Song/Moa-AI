@@ -5,6 +5,7 @@ import type {
   AiNewsCreateRequest,
   AiNewsListParams,
   AiNewsResponse,
+  AiVideoResponse,
 } from '../types/news';
 
 export async function getNewsList(
@@ -47,6 +48,25 @@ export async function deleteAdminNews(newsId: number): Promise<void> {
 export async function collectAiNews(): Promise<AiNewsCollectResponse> {
   const { data } = await apiClient.post<ApiResponse<AiNewsCollectResponse>>(
     '/admin/news/collect',
+    undefined,
+    { timeout: 60_000 },
+  );
+  return data.data;
+}
+
+export async function getNewsVideos(limit = 12): Promise<AiVideoResponse[]> {
+  const { data } = await apiClient.get<ApiResponse<AiVideoResponse[]>>(
+    '/news/videos',
+    {
+      params: { limit },
+    },
+  );
+  return data.data;
+}
+
+export async function collectAiVideos(): Promise<string> {
+  const { data } = await apiClient.post<ApiResponse<string>>(
+    '/admin/news/videos/collect',
     undefined,
     { timeout: 60_000 },
   );

@@ -31,3 +31,13 @@ export interface AiNewsCollectResponse {
   skippedCount: number;
   failedCount: number;
 }
+
+export interface AiVideoResponse {
+  id: number;
+  videoId: string;
+  title: string;
+  channelTitle: string;
+  thumbnailUrl: string;
+  publishedAt: string;
+  videoUrl: string;
+}

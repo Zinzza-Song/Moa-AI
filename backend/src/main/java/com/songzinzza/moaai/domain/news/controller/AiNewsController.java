@@ -1,13 +1,16 @@
 package com.songzinzza.moaai.domain.news.controller;
 
+import com.songzinzza.moaai.domain.news.scheduler.AiNewsScheduler;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.songzinzza.moaai.domain.news.dto.AiNewsCollectResponse;
 import com.songzinzza.moaai.domain.news.dto.AiNewsCreateRequest;
 import com.songzinzza.moaai.domain.news.dto.AiNewsResponse;
+import com.songzinzza.moaai.domain.news.dto.AiVideoResponse;
 import com.songzinzza.moaai.domain.news.service.AiNewsCollectService;
 import com.songzinzza.moaai.domain.news.service.AiNewsService;
+import com.songzinzza.moaai.domain.news.service.AiVideoService;
 import com.songzinzza.moaai.global.common.ApiResponse;
 import com.songzinzza.moaai.global.common.PageResponse;
 
@@ -15,6 +18,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+
+import java.util.List;
 
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -32,8 +37,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 @RequiredArgsConstructor
 @RequestMapping("/api")
 public class AiNewsController {
+  private final AiNewsScheduler aiNewsScheduler;
   private final AiNewsService aiNewsService;
   private final AiNewsCollectService aiNewsCollectService;
+  private final AiVideoService aiVideoService;
 
   @Operation(summary = "AI 뉴스 목록 조회 및 검색", description = "키워드, 태그 필터링 및 최신 발행순 페이징 조회 지원")
   @GetMapping("/news")
@@ -72,4 +79,20 @@ public class AiNewsController {
   public ResponseEntity<ApiResponse<AiNewsCollectResponse>> collectAiNews() {
     return ResponseEntity.ok(ApiResponse.ok(aiNewsCollectService.collectAll()));
   }
+
+  @Operation(summary = "최신 AI 유튜브 영상 조회(기본 12개)")
+  @GetMapping("/news/videos")
+  public ApiResponse<List<AiVideoResponse>> getRecentVideos(
+      @RequestParam(defaultValue = "12") int limit) {
+    return ApiResponse.ok(aiVideoService.getRecentVideos(limit).getVideos());
+  }
+
+  @Operation(summary = "[관리자] AI 유튜브 영상 수동 수집")
+  @PostMapping("/admin/news/videos/collect")
+  public ApiResponse<String> collectVideos() {
+    aiNewsScheduler.collectAiVideos();
+
+    return ApiResponse.ok("유튜브 AI 영상 수집이 완료되었습니다.");
+  }
+
 }

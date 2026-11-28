@@ -8,17 +8,33 @@ import {
   ExternalLink,
   Loader2,
   Newspaper,
+  Play,
+  PlayCircle,
   PlusCircle,
   Search,
   Sparkles,
   Tag,
+  Video,
   X,
 } from 'lucide-react';
-import { collectAiNews, getNewsList } from '../api/news';
+import {
+  collectAiNews,
+  collectAiVideos,
+  getNewsList,
+  getNewsVideos,
+} from '../api/news';
 import { extractApiError, formatDateTime } from '../constants/promptOptions';
 import { useAuth } from '../context/AuthContext';
 import type { PageResponse } from '../types/api';
-import type { AiNewsResponse } from '../types/news';
+import type { AiNewsResponse, AiVideoResponse } from '../types/news';
+
+type NewsTab = 'articles' | 'videos';
+
+function decodeHtmlEntities(text: string): string {
+  if (!text || !text.includes('&')) return text;
+  const doc = new DOMParser().parseFromString(text, 'text/html');
+  return doc.documentElement.textContent ?? text;
+}
 
 export function NewsPage() {
   const { user, isAuthenticated } = useAuth();
@@ -26,17 +42,27 @@ export function NewsPage() {
 
   const initialTag = searchParams.get('tag') ?? '';
   const initialKeyword = searchParams.get('keyword') ?? '';
+  const initialTab: NewsTab =
+    searchParams.get('tab') === 'videos' ? 'videos' : 'articles';
+
+  const [activeTab, setActiveTab] = useState<NewsTab>(initialTab);
 
   const [newsPage, setNewsPage] =
     useState<PageResponse<AiNewsResponse> | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  const [videos, setVideos] = useState<AiVideoResponse[]>([]);
+  const [isVideosLoading, setIsVideosLoading] = useState<boolean>(false);
+  const [videosError, setVideosError] = useState<string | null>(null);
+  const [hasLoadedVideos, setHasLoadedVideos] = useState<boolean>(false);
+
   const [searchInput, setSearchInput] = useState<string>(initialKeyword);
   const [keyword, setKeyword] = useState<string>(initialKeyword);
   const [selectedTag, setSelectedTag] = useState<string>(initialTag);
   const [page, setPage] = useState<number>(0);
   const [isCollecting, setIsCollecting] = useState<boolean>(false);
+  const [isCollectingVideos, setIsCollectingVideos] = useState<boolean>(false);
   const [collectNotice, setCollectNotice] = useState<{
     type: 'success' | 'error';
     message: string;
@@ -69,6 +95,30 @@ export function NewsPage() {
   useEffect(() => {
     void fetchNews();
   }, [fetchNews]);
+
+  const fetchVideos = useCallback(async () => {
+    setIsVideosLoading(true);
+    setVideosError(null);
+    try {
+      const data = await getNewsVideos(12);
+      setVideos(data);
+      setHasLoadedVideos(true);
+    } catch (error) {
+      const { message } = extractApiError(
+        error,
+        'AI 유튜브 영상을 불러오지 못했습니다.',
+      );
+      setVideosError(message);
+    } finally {
+      setIsVideosLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'videos' && !hasLoadedVideos) {
+      void fetchVideos();
+    }
+  }, [activeTab, hasLoadedVideos, fetchVideos]);
 
   const syncQueryParams = (nextKeyword: string, nextTag: string) => {
     const next = new URLSearchParams();
@@ -131,6 +181,31 @@ export function NewsPage() {
     }
   };
 
+  const handleCollectVideos = async () => {
+    if (isCollectingVideos) return;
+    setIsCollectingVideos(true);
+    setCollectNotice(null);
+    try {
+      const message = await collectAiVideos();
+      setCollectNotice({
+        type: 'success',
+        message: message || '유튜브 AI 영상 수집이 완료되었습니다.',
+      });
+      await fetchVideos();
+    } catch (error) {
+      const { message } = extractApiError(
+        error,
+        'AI 유튜브 영상 수집에 실패했습니다.',
+      );
+      setCollectNotice({
+        type: 'error',
+        message,
+      });
+    } finally {
+      setIsCollectingVideos(false);
+    }
+  };
+
   const hasActiveFilters = Boolean(keyword || selectedTag);
   const newsList = newsPage?.content ?? [];
   const totalPages = newsPage?.totalPages ?? 0;
@@ -169,6 +244,24 @@ export function NewsPage() {
                 <>
                   <Sparkles className="h-4 w-4" />
                   <span>AI 뉴스 자동 수집</span>
+                </>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleCollectVideos()}
+              disabled={isCollectingVideos}
+              className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-semibold text-rose-700 transition-colors hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isCollectingVideos ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>영상 수집 중...</span>
+                </>
+              ) : (
+                <>
+                  <Video className="h-4 w-4" />
+                  <span>영상 수집</span>
                 </>
               )}
             </button>
@@ -212,7 +305,53 @@ export function NewsPage() {
         </div>
       )}
 
-      {/* 검색 & 활성 태그 필터 */}
+      {/* 탭 전환: AI 뉴스 기사 | AI 유튜브 영상 */}
+      <div className="flex items-center justify-between border-b border-slate-200">
+        <div className="flex gap-1" role="tablist" aria-label="AI 뉴스 콘텐츠 탭">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'articles'}
+            onClick={() => setActiveTab('articles')}
+            className={`inline-flex cursor-pointer items-center gap-1.5 border-b-2 px-4 py-3 text-sm font-semibold transition-colors ${
+              activeTab === 'articles'
+                ? 'border-indigo-600 text-indigo-600'
+                : 'border-transparent text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <Newspaper className="h-4 w-4" />
+            <span>AI 뉴스 기사</span>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'videos'}
+            onClick={() => setActiveTab('videos')}
+            className={`inline-flex cursor-pointer items-center gap-1.5 border-b-2 px-4 py-3 text-sm font-semibold transition-colors ${
+              activeTab === 'videos'
+                ? 'border-indigo-600 text-indigo-600'
+                : 'border-transparent text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <PlayCircle className="h-4 w-4" />
+            <span>AI 유튜브 영상</span>
+          </button>
+        </div>
+
+        {activeTab === 'videos' && !isVideosLoading && !videosError && (
+          <span className="hidden text-xs text-slate-500 sm:inline">
+            최신{' '}
+            <strong className="font-semibold text-slate-800">
+              {videos.length}
+            </strong>
+            개의 영상
+          </span>
+        )}
+      </div>
+
+      {activeTab === 'articles' ? (
+        <>
+          {/* 검색 & 활성 태그 필터 */}
       <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-xs sm:p-5">
         <form onSubmit={handleSearchSubmit} className="flex gap-2">
           <div className="relative flex-1">
@@ -424,6 +563,101 @@ export function NewsPage() {
             <ChevronRight className="h-4 w-4" />
           </button>
         </nav>
+      )}
+        </>
+      ) : (
+        /* AI 유튜브 영상 탭 */
+        <>
+          {videosError ? (
+            <div className="rounded-2xl border border-red-200 bg-red-50 p-8 text-center">
+              <p className="text-sm font-medium text-red-700">{videosError}</p>
+              <button
+                type="button"
+                onClick={() => void fetchVideos()}
+                className="mt-4 cursor-pointer rounded-xl bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+              >
+                다시 시도
+              </button>
+            </div>
+          ) : isVideosLoading ? (
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {Array.from({ length: 6 }).map((_, index) => (
+                <div
+                  key={index}
+                  className="animate-pulse overflow-hidden rounded-2xl border border-slate-200 bg-white"
+                >
+                  <div className="aspect-video w-full bg-slate-200" />
+                  <div className="space-y-3 p-4">
+                    <div className="space-y-2">
+                      <div className="h-4 w-full rounded bg-slate-200" />
+                      <div className="h-4 w-3/4 rounded bg-slate-200" />
+                    </div>
+                    <div className="flex items-center justify-between border-t border-slate-100 pt-2.5">
+                      <div className="h-3.5 w-24 rounded bg-slate-100" />
+                      <div className="h-3.5 w-20 rounded bg-slate-100" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : videos.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center">
+              <PlayCircle className="mx-auto h-10 w-10 text-slate-300" />
+              <h2 className="mt-3 text-base font-semibold text-slate-900">
+                등록된 AI 유튜브 영상이 없습니다
+              </h2>
+              <p className="mt-1 text-sm text-slate-500">
+                {isAdmin
+                  ? '상단의 영상 수집 버튼을 눌러 최신 AI 유튜브 영상을 불러올 수 있습니다.'
+                  : '아직 수집된 AI 유튜브 영상이 없습니다. 잠시 후 다시 확인해 주세요.'}
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {videos.map((video) => {
+                const decodedTitle = decodeHtmlEntities(video.title);
+                return (
+                  <a
+                    key={video.id}
+                    href={video.videoUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xs transition-all hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md"
+                  >
+                    <div className="relative aspect-video w-full overflow-hidden bg-slate-100">
+                      <img
+                        src={video.thumbnailUrl}
+                        alt={decodedTitle}
+                        loading="lazy"
+                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                      <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-slate-900/0 transition-colors group-hover:bg-slate-900/30">
+                        <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white/90 text-indigo-600 opacity-0 shadow-md transition-opacity group-hover:opacity-100">
+                          <Play className="ml-0.5 h-5 w-5 fill-current" />
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-1 flex-col justify-between p-4">
+                      <h2 className="line-clamp-2 text-sm leading-snug font-bold text-slate-900 group-hover:text-indigo-600 sm:text-base">
+                        {decodedTitle}
+                      </h2>
+
+                      <div className="mt-3 flex items-center justify-between gap-2 border-t border-slate-100 pt-2.5 text-xs text-slate-500">
+                        <span className="truncate font-medium text-slate-700">
+                          {video.channelTitle}
+                        </span>
+                        <span className="shrink-0">
+                          {formatDateTime(video.publishedAt)}
+                        </span>
+                      </div>
+                    </div>
+                  </a>
+                );
+              })}
+            </div>
+          )}
+        </>
       )}
     </div>
   );

@@ -131,3 +131,8 @@ app:
             - "AI"
             - "LLM"
             - "MCP"
+  youtube:
+    enabled: true
+    api-key: ${YOUTUBE_API_KEY:}
+    keyword: "AI 뉴스 AI 트렌드"
+    max-results: 15
